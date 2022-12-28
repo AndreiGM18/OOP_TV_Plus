@@ -85,6 +85,28 @@ public final class Database {
 
         return user;
     }
+
+    /**
+     *
+     * @param movieInput
+     */
+    public void addMovie(final MovieInput movieInput) {
+        Movie movie = new Movie.MovieBuilder(movieInput)
+                .build();
+        this.putMovie(movie);
+    }
+
+    /**
+     *
+     * @param movieName
+     */
+    public void removeMovie(final String movieName) {
+        for (Movie movie : movieDatabase) {
+            if (movie.getName().equals(movieName)) {
+                movieDatabase.remove(movie);
+            }
+        }
+    }
     /**
      * Creates both the user and the movie databases, by building each user and movie individually,
      * then adding them in their respective database

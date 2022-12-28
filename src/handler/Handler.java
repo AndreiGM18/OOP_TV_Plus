@@ -294,6 +294,26 @@ public final class Handler {
     }
 
     /**
+     *
+     * @param app
+     * @param action
+     * @param output
+     */
+    public static void subscribe(final App app, final ActionInput action, final ArrayNode output) {
+        if (app.getCurrentPage().getName().equals(Constants.Page.DETAILS)
+            && !app.getCurrentMoviesList().isEmpty()) {
+            if (app.getCurrentMoviesList().get(0).getGenres()
+                    .contains(action.getSubscribedGenre())) {
+                return;
+            } else {
+                Handler.createOut(output, app, Constants.Output.ERROR);
+            }
+        } else {
+            Handler.createOut(output, app, Constants.Output.ERROR);
+        }
+    }
+
+    /**
      * Handles all on-page actions
      * @param database holds all users and movies
      * @param app the current app session
@@ -356,6 +376,19 @@ public final class Handler {
                 case Constants.Action.ON -> onPageHandler(database, app, action, output);
 
                 case Constants.Action.BACK -> backCommandHandler(database, app, action, output);
+
+                case Constants.Action.DATABASE -> {
+                    if (action.getType().equals("add")) {
+                        database.addMovie(action.getAddedMovie());
+                    } else if (action.getType().equals("delete")) {
+                        database.removeMovie(action.getDeletedMovie());
+                    }
+                }
+
+                case Constants.Action.SUB -> {
+                    Handler.subscribe(app, action, output);
+                }
+
                 /* Default error */
                 default -> Handler.createOut(output, app, Constants.Output.ERROR);
             }

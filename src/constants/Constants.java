@@ -44,6 +44,8 @@ public class Constants {
             public static final String DEC = "decreasing";
         }
         public static final String BACK = "back";
+        public static final String DATABASE = "database";
+        public static final String SUB = "subscribe";
     }
 
     public static class Output {
