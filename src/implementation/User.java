@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import constants.Constants;
 import fileio.CredentialsInput;
+import notification.Notification;
 
 import java.util.ArrayList;
 
@@ -18,6 +19,7 @@ public final class User {
     private ArrayList<Movie> watchedMovies;
     private ArrayList<Movie> likedMovies;
     private ArrayList<Movie> ratedMovies;
+    private ArrayList<Notification> notifications;
 
     private User(final UserBuilder builder) {
         this.credentials = builder.credentials;
@@ -27,6 +29,7 @@ public final class User {
         this.watchedMovies = builder.watchedMovies;
         this.likedMovies = builder.likedMovies;
         this.ratedMovies = builder.ratedMovies;
+        this.notifications = builder.notifications;
     }
 
     public Credentials getCredentials() {
@@ -93,6 +96,7 @@ public final class User {
         private ArrayList<Movie> watchedMovies = new ArrayList<>();
         private ArrayList<Movie> likedMovies = new ArrayList<>();
         private ArrayList<Movie> ratedMovies = new ArrayList<>();
+        private ArrayList<Notification> notifications = new ArrayList<>();
 
         public UserBuilder(final CredentialsInput credentialsGiven) {
             this.credentials = new Credentials(credentialsGiven);
@@ -151,6 +155,15 @@ public final class User {
          */
         public UserBuilder ratedMovies(final ArrayList<Movie> ratedMoviesGiven) {
             this.ratedMovies = ratedMoviesGiven;
+            return this;
+        }
+
+        /**
+         * @param notificationsGiven the notifications
+         * @return the changed Builder instance
+         */
+        public UserBuilder notification(final ArrayList<Notification> notificationsGiven) {
+            this.notifications = notificationsGiven;
             return this;
         }
 
@@ -250,6 +263,7 @@ public final class User {
         objectNode.set(Constants.User.WATCHED, Movie.createMoviesArrayNode(watchedMovies));
         objectNode.set(Constants.User.LIKED, Movie.createMoviesArrayNode(likedMovies));
         objectNode.set(Constants.User.RATED, Movie.createMoviesArrayNode(ratedMovies));
+        objectNode.putPOJO(Constants.User.NOTIFS, notifications);
 
         return objectNode;
     }

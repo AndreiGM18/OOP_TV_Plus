@@ -23,4 +23,8 @@ public final class Movies extends Page implements Accepter {
     public boolean accept(final Verifier verifier, final String string) {
         return verifier.verify(this, string);
     }
+
+    public String getName() {
+        return Constants.Page.MOVIES;
+    }
 }

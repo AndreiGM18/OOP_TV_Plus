@@ -21,6 +21,7 @@ public class Constants {
         public static final String WATCHED = "watchedMovies";
         public static final String LIKED = "likedMovies";
         public static final String RATED = "ratedMovies";
+        public static final String NOTIFS = "notifications";
     }
 
     public static class Movie {
@@ -42,6 +43,7 @@ public class Constants {
             public static final String INC = "increasing";
             public static final String DEC = "decreasing";
         }
+        public static final String BACK = "back";
     }
 
     public static class Output {

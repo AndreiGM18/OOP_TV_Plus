@@ -31,7 +31,7 @@ public final class App {
      * Singleton pattern
      * @return instance
      */
-    public static App getUI() {
+    public static App getApp() {
         if (instance == null) {
             instance = new App();
         }
