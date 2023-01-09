@@ -18,7 +18,9 @@ import application.sortstrategy.SortStrategy;
 import application.sortstrategy.SortStrategyFactory;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Map;
 
 public final class App {
     private static App instance = null;
@@ -201,5 +203,53 @@ public final class App {
         if (filter.getContains() != null) {
             this.contains(filter.getContains());
         }
+    }
+
+    public ArrayList<String> getMostLikedGenres() {
+        ArrayList<String> mostLikedGenres = new ArrayList<>();
+
+        for (Map.Entry<String, Integer> entry : currentUser.getGenreNumLikes().entrySet()) {
+            mostLikedGenres.add(entry.getKey());
+        }
+
+        mostLikedGenres.sort(new Comparator<String>() {
+            @Override
+            public int compare(String o1, String o2) {
+                if (currentUser.getGenreNumLikes().get(o1)
+                        == currentUser.getGenreNumLikes().get(o2)) {
+                    if (o1.compareTo(o2) >= 0)
+                        return 1;
+                    else
+                        return -1;
+                } else if (currentUser.getGenreNumLikes().get(o1)
+                        < currentUser.getGenreNumLikes().get(o2))
+                    return 1;
+                else
+                    return -1;
+            }
+        });
+
+        return mostLikedGenres;
+    }
+
+    public ArrayList<Movie> getMostLikedMovies() {
+        ArrayList<Movie> mostLikedMovies = new ArrayList<>(currentMoviesList);
+
+        mostLikedMovies.sort(new Comparator<Movie>() {
+            @Override
+            public int compare(Movie o1, Movie o2) {
+                if (o1.getNumLikes() == o2.getNumLikes()) {
+                    if (o1.getName().compareTo(o2.getName()) >= 0)
+                        return 1;
+                    else
+                        return -1;
+                } else if (o1.getNumLikes() < o2.getNumLikes())
+                    return 1;
+                else
+                    return -1;
+            }
+        });
+
+        return mostLikedMovies;
     }
 }

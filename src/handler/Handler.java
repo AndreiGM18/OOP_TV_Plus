@@ -278,9 +278,13 @@ public final class Handler {
             app.getCurrentUser().getLikedMovies().add(movie);
             movie.setNumLikes(movie.getNumLikes() + 1);
 
-            for (String genre : movie.getGenres())
-                app.getCurrentUser().getGenreNumLikes().put(genre,
-                        app.getCurrentUser().getGenreNumLikes().get(genre) + 1);
+            for (String genre : movie.getGenres()) {
+                int genreLikes = 0;
+                if (app.getCurrentUser().getGenreNumLikes().containsKey(genre))
+                    genreLikes = app.getCurrentUser().getGenreNumLikes().get(genre);
+
+                app.getCurrentUser().getGenreNumLikes().put(genre, genreLikes + 1);
+            }
 
             Handler.createOut(output, app, null);
         } else {
@@ -331,6 +335,11 @@ public final class Handler {
      * @param output
      */
     public static void subscribe(final App app, final ActionInput action, final ArrayNode output) {
+        if (app.getCurrentUser().getSubscribedGenres().contains(action.getSubscribedGenre())) {
+            Handler.createOut(output, app, Constants.Output.ERROR);
+            return;
+        }
+
         if (app.getCurrentPage().getName().equals(Constants.Page.DETAILS)
             && !app.getCurrentMoviesList().isEmpty()) {
             if (app.getCurrentMoviesList().get(0).getGenres()
@@ -390,9 +399,25 @@ public final class Handler {
         }
     }
 
-    public static void recommend(User user) {
-        Notification recommendation = new Notification("Recommendation", null);
-        user.getNotifications().add(recommendation);
+    public static void recommend(App app) {
+        ArrayList<String> mostLikedGenres = app.getMostLikedGenres();
+        ArrayList<Movie> mostLikedMovies = app.getMostLikedMovies();
+
+        Movie recommendedMovie = null;
+        for (String genre : mostLikedGenres) {
+            for (Movie movie: mostLikedMovies) {
+                if (movie.getGenres().contains(genre)
+                        && !app.getCurrentUser().getWatchedMovies().contains(movie)) {
+                    recommendedMovie = movie;
+                    break;
+                }
+            }
+            if (recommendedMovie != null)
+                break;
+        }
+
+        Notification recommendation = new Notification("Recommendation", recommendedMovie);
+        app.getCurrentUser().getNotifications().add(recommendation);
     }
 
     /**
@@ -430,10 +455,12 @@ public final class Handler {
             }
         }
 
-        if (app.getCurrentUser().getCredentials().getAccountType()
-                .equals(Constants.User.Credentials.PREMIUM)){
-            recommend(app.getCurrentUser());
-            Handler.createOut(output, app, "recommend");
-        }
+        if (app.getCurrentUser() != null)
+            if (app.getCurrentUser().getCredentials().getAccountType()
+                    .equals(Constants.User.Credentials.PREMIUM)) {
+                app.setCurrentMoviesList(new ArrayList<>(database.getMovieDatabase()));
+                recommend(app);
+                Handler.createOut(output, app, "recommend");
+            }
     }
 }
