@@ -45,7 +45,6 @@ public class Constants {
         }
         public static final String BACK = "back";
         public static final String DATABASE = "database";
-        public static final String SUB = "subscribe";
     }
 
     public static class Output {
@@ -86,5 +85,6 @@ public class Constants {
         public static final String RATE = "rate";
         public static final String BUY_TOKENS = "buy tokens";
         public static final String BUY_PREMIUM = "buy premium account";
+        public static final String SUB = "subscribe";
     }
 }

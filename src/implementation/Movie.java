@@ -7,6 +7,7 @@ import constants.Constants;
 import fileio.MovieInput;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 /**
  * Class implements the Builder design pattern
@@ -22,6 +23,7 @@ public final class Movie {
     private double rating;
     private int numRatings;
     private int sumRatings;
+    private HashMap<User, Integer> ratings;
 
     public String getName() {
         return name;
@@ -74,6 +76,7 @@ public final class Movie {
         this.rating = builder.rating;
         this.numRatings = builder.numRatings;
         this.sumRatings = builder.sumRatings;
+        this.ratings = builder.rates;
     }
 
     public static final class MovieBuilder {
@@ -87,6 +90,7 @@ public final class Movie {
         private double rating = 0;
         private int numRatings = 0;
         private int sumRatings = 0;
+        private HashMap<User, Integer> rates = new HashMap<>();
 
         public MovieBuilder(final MovieInput movie) {
             this.name = movie.getName();
@@ -134,6 +138,15 @@ public final class Movie {
         }
 
         /**
+         * @param ratesGiven all ratings
+         * @return the changed Builder instance
+         */
+        public MovieBuilder rates(final HashMap<User, Integer> ratesGiven) {
+            this.rates = ratesGiven;
+            return this;
+        }
+
+        /**
          * @return a Movie based on everything specified to the Builder
          */
         public Movie build() {
@@ -155,6 +168,14 @@ public final class Movie {
 
     public void setSumRatings(final int sumRatings) {
         this.sumRatings = sumRatings;
+    }
+
+    public HashMap<User, Integer> getRates() {
+        return ratings;
+    }
+
+    public void setRates(HashMap<User, Integer> ratings) {
+        this.ratings = ratings;
     }
 
     /**

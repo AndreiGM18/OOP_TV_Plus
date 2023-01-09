@@ -11,11 +11,13 @@ import fileio.ActionInput;
 import fileio.Input;
 import implementation.Movie;
 import implementation.User;
+import notification.Notification;
 import verifier.VerifierChangePage;
 import verifier.VerifierOnPage;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.Map;
 
 public final class Handler {
     private static final LinkedList<String> PAGES_STACK = new LinkedList<>();
@@ -30,7 +32,7 @@ public final class Handler {
      * @param app the current app session
      * @param error signifies whether an error has occurred or not
      */
-    private static void createOut(final ArrayNode output, final App app, final String error) {
+    public static void createOut(final ArrayNode output, final App app, final String error) {
         ObjectMapper objectMapper = new ObjectMapper();
         ObjectNode node = objectMapper.createObjectNode();
 
@@ -38,6 +40,10 @@ public final class Handler {
             node.set(Constants.Output.ERR, null);
             node.set(Constants.Output.CURR_MOVIES,
                     Movie.createMoviesArrayNode(app.getCurrentMoviesList()));
+            node.set(Constants.Output.CURR_USER, app.getCurrentUser().createObjectNode());
+        } else if (error.equals("recommend")) {
+            node.set(Constants.Output.ERR, null);
+            node.set(Constants.Output.CURR_MOVIES, null);
             node.set(Constants.Output.CURR_USER, app.getCurrentUser().createObjectNode());
         } else {
             node.put(Constants.Output.ERR, error);
@@ -106,6 +112,7 @@ public final class Handler {
             } else {
                 Handler.createOut(output, app, Constants.Output.ERROR);
                 app.setCurrentPage(app.getPages().get(Constants.Page.MOVIES));
+                PAGES_STACK.removeLast();
             }
         }
     }
@@ -187,6 +194,7 @@ public final class Handler {
             Handler.createOut(output, app, Constants.Output.ERROR);
             app.setCurrentPage(app.getPages().get(Constants.Page.UNAUTH));
         } else {
+            PAGES_STACK.clear();
             User newUser = database.addUser(action.getCredentials());
             app.setCurrentUser(newUser);
             app.setCurrentPage(app.getPages().get(Constants.Page.AUTH));
@@ -230,8 +238,9 @@ public final class Handler {
     }
 
     private static void purchase(final Movie movie, final App app, final ArrayNode output) {
-        if (app.getCurrentUser().getPurchasedMovies().contains(movie.getName())) {
+        if (app.getCurrentUser().getPurchasedMovies().contains(movie)) {
             Handler.createOut(output, app, Constants.Output.ERROR);
+            return;
         }
 
         /* The current user's purchase method is called, and an output is created based
@@ -249,7 +258,10 @@ public final class Handler {
          * An output is created whether an error has occurred or not
          */
         if (app.getCurrentUser().getPurchasedMovies().contains(movie)) {
-            app.getCurrentUser().getWatchedMovies().add(movie);
+            if (!app.getCurrentUser().getWatchedMovies().contains(movie)) {
+                app.getCurrentUser().getWatchedMovies().add(movie);
+            }
+
             Handler.createOut(output, app, null);
         } else {
             Handler.createOut(output, app, Constants.Output.ERROR);
@@ -261,9 +273,15 @@ public final class Handler {
          * Then, the movie's number of likes increases
          * An output is created whether an error has occurred or not
          */
-        if (app.getCurrentUser().getWatchedMovies().contains(movie)) {
+        if (app.getCurrentUser().getWatchedMovies().contains(movie)
+            && !app.getCurrentUser().getLikedMovies().contains(movie)) {
             app.getCurrentUser().getLikedMovies().add(movie);
             movie.setNumLikes(movie.getNumLikes() + 1);
+
+            for (String genre : movie.getGenres())
+                app.getCurrentUser().getGenreNumLikes().put(genre,
+                        app.getCurrentUser().getGenreNumLikes().get(genre) + 1);
+
             Handler.createOut(output, app, null);
         } else {
             Handler.createOut(output, app, Constants.Output.ERROR);
@@ -281,11 +299,24 @@ public final class Handler {
             if (action.getRate() > Constants.Integers.MAX_RATING) {
                 Handler.createOut(output, app, Constants.Output.ERROR);
             } else {
-                movie.setNumRatings(movie.getNumRatings() + 1);
-                movie.setSumRatings(movie.getSumRatings()
-                        + action.getRate());
+                if (!movie.getRates().containsKey(app.getCurrentUser())) {
+                    movie.setNumRatings(movie.getNumRatings() + 1);
+                }
+
+                movie.getRates().remove(app.getCurrentUser());
+                movie.getRates().put(app.getCurrentUser(), action.getRate());
+
+                int sum = 0;
+                for (Map.Entry<User, Integer> entry : movie.getRates().entrySet())
+                   sum += entry.getValue();
+
+                movie.setSumRatings(sum);
+
                 movie.setRating((double) movie.getSumRatings() / movie.getNumRatings());
-                app.getCurrentUser().getRatedMovies().add(movie);
+
+                if (!app.getCurrentUser().getRatedMovies().contains(movie))
+                    app.getCurrentUser().getRatedMovies().add(movie);
+
                 Handler.createOut(output, app, null);
             }
         } else {
@@ -304,7 +335,7 @@ public final class Handler {
             && !app.getCurrentMoviesList().isEmpty()) {
             if (app.getCurrentMoviesList().get(0).getGenres()
                     .contains(action.getSubscribedGenre())) {
-                return;
+                app.getCurrentUser().getSubscribedGenres().add(action.getSubscribedGenre());
             } else {
                 Handler.createOut(output, app, Constants.Output.ERROR);
             }
@@ -351,10 +382,17 @@ public final class Handler {
                 case Constants.Feature.RATE -> rate(app.getCurrentMoviesList().get(0), app, action,
                                                     output);
 
+                case Constants.Feature.SUB -> subscribe(app, action, output);
+
                 /* Default error */
                 default -> Handler.createOut(output, app, Constants.Output.ERROR);
             }
         }
+    }
+
+    public static void recommend(User user) {
+        Notification recommendation = new Notification("Recommendation", null);
+        user.getNotifications().add(recommendation);
     }
 
     /**
@@ -378,20 +416,24 @@ public final class Handler {
                 case Constants.Action.BACK -> backCommandHandler(database, app, action, output);
 
                 case Constants.Action.DATABASE -> {
-                    if (action.getType().equals("add")) {
-                        database.addMovie(action.getAddedMovie());
-                    } else if (action.getType().equals("delete")) {
-                        database.removeMovie(action.getDeletedMovie());
+                    if (action.getFeature().equals("add")) {
+                        if (!database.addMovie(action.getAddedMovie()))
+                            Handler.createOut(output, app, Constants.Output.ERROR);
+                    } else if (action.getFeature().equals("delete")) {
+                        if (!database.removeMovie(action.getDeletedMovie()))
+                            Handler.createOut(output, app, Constants.Output.ERROR);
                     }
-                }
-
-                case Constants.Action.SUB -> {
-                    Handler.subscribe(app, action, output);
                 }
 
                 /* Default error */
                 default -> Handler.createOut(output, app, Constants.Output.ERROR);
             }
+        }
+
+        if (app.getCurrentUser().getCredentials().getAccountType()
+                .equals(Constants.User.Credentials.PREMIUM)){
+            recommend(app.getCurrentUser());
+            Handler.createOut(output, app, "recommend");
         }
     }
 }

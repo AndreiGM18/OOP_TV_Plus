@@ -1,5 +1,6 @@
 package implementation;
 
+import Obs.Observer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import constants.Constants;
@@ -7,11 +8,12 @@ import fileio.CredentialsInput;
 import notification.Notification;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 /**
  * Class implements the Builder design pattern
  */
-public final class User {
+public final class User implements Observer {
     private Credentials credentials;
     private int tokensCount;
     private int numFreePremiumMovies;
@@ -20,6 +22,8 @@ public final class User {
     private ArrayList<Movie> likedMovies;
     private ArrayList<Movie> ratedMovies;
     private ArrayList<Notification> notifications;
+    private HashMap<String, Integer> genreNumLikes;
+    private ArrayList<String> subscribedGenres;
 
     private User(final UserBuilder builder) {
         this.credentials = builder.credentials;
@@ -30,6 +34,8 @@ public final class User {
         this.likedMovies = builder.likedMovies;
         this.ratedMovies = builder.ratedMovies;
         this.notifications = builder.notifications;
+        this.genreNumLikes = builder.genreNumLikes;
+        this.subscribedGenres = builder.subscribedGenres;
     }
 
     public Credentials getCredentials() {
@@ -88,6 +94,42 @@ public final class User {
         this.ratedMovies = ratedMovies;
     }
 
+    public ArrayList<String> getSubscribedGenres() {
+        return subscribedGenres;
+    }
+
+    public ArrayList<Notification> getNotifications() {
+        return notifications;
+    }
+
+    @Override
+    public void update(final Object o) {
+        Notification notification = (Notification)o;
+
+        if (notification.getMessage().equals("ADD")) {
+            for (String genre : notification.getMovie().getGenres()) {
+                if (this.subscribedGenres.contains(genre)) {
+                    this.notifications.add(notification);
+                    return;
+                }
+            }
+        } else {
+            if (this.purchasedMovies.contains(notification.getMovie())) {
+                this.notifications.add(notification);
+                this.purchasedMovies.remove(notification.getMovie());
+                this.watchedMovies.remove(notification.getMovie());
+                this.likedMovies.remove(notification.getMovie());
+                this.ratedMovies.remove(notification.getMovie());
+
+                if (this.credentials.getAccountType().equals(Constants.User.Credentials.PREMIUM)) {
+                    ++this.numFreePremiumMovies;
+                } else {
+                    ++this.tokensCount;
+                }
+            }
+        }
+    }
+
     public static final class UserBuilder {
         private Credentials credentials;
         private int tokensCount = 0;
@@ -97,6 +139,8 @@ public final class User {
         private ArrayList<Movie> likedMovies = new ArrayList<>();
         private ArrayList<Movie> ratedMovies = new ArrayList<>();
         private ArrayList<Notification> notifications = new ArrayList<>();
+        private HashMap<String, Integer> genreNumLikes = new HashMap<>();
+        private ArrayList<String> subscribedGenres = new ArrayList<>();
 
         public UserBuilder(final CredentialsInput credentialsGiven) {
             this.credentials = new Credentials(credentialsGiven);
@@ -162,8 +206,18 @@ public final class User {
          * @param notificationsGiven the notifications
          * @return the changed Builder instance
          */
-        public UserBuilder notification(final ArrayList<Notification> notificationsGiven) {
+        public UserBuilder notifications(final ArrayList<Notification> notificationsGiven) {
             this.notifications = notificationsGiven;
+            return this;
+        }
+
+        public UserBuilder genreNumLikes(final HashMap<String, Integer> genreNumLikesGiven) {
+            this.genreNumLikes = genreNumLikesGiven;
+            return this;
+        }
+
+        public UserBuilder subscribedGenres(final ArrayList<String> subscribedGenresGiven) {
+            this.subscribedGenres = subscribedGenresGiven;
             return this;
         }
 
@@ -173,6 +227,14 @@ public final class User {
         public User build() {
             return new User(this);
         }
+    }
+
+    public HashMap<String, Integer> getGenreNumLikes() {
+        return genreNumLikes;
+    }
+
+    public void setGenreNumLikes(HashMap<String, Integer> genreNumLikes) {
+        this.genreNumLikes = genreNumLikes;
     }
 
     /**
@@ -263,7 +325,7 @@ public final class User {
         objectNode.set(Constants.User.WATCHED, Movie.createMoviesArrayNode(watchedMovies));
         objectNode.set(Constants.User.LIKED, Movie.createMoviesArrayNode(likedMovies));
         objectNode.set(Constants.User.RATED, Movie.createMoviesArrayNode(ratedMovies));
-        objectNode.putPOJO(Constants.User.NOTIFS, notifications);
+        objectNode.set(Constants.User.NOTIFS, Notification.createArrayNode(notifications));
 
         return objectNode;
     }

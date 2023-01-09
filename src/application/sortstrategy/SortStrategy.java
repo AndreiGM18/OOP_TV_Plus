@@ -131,7 +131,7 @@ final class RatingDec extends SortStrategy {
         currentMoviesList.sort(new Comparator<Movie>() {
             @Override
             public int compare(final Movie o1, final Movie o2) {
-                if (o1.getRating() >= o2.getRating()) {
+                if (o1.getRating() <= o2.getRating()) {
                     return 1;
                 } else {
                     return -1;

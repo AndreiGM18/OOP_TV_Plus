@@ -141,7 +141,7 @@ public final class Test {
 
         int i = 0;
         for (final File testFile : Objects.requireNonNull(TEST_INPUTS_FILE.listFiles())) {
-            if (i == 2) {
+            if (i >= 0) {
                 String testFileName = testFile.getName();
 
                 preTestCleanUp();

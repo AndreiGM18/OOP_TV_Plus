@@ -20,6 +20,7 @@ public final class SeeDetails extends Page implements Accepter {
         this.pageFeatures.add(Constants.Feature.WATCH);
         this.pageFeatures.add(Constants.Feature.LIKE);
         this.pageFeatures.add(Constants.Feature.RATE);
+        this.pageFeatures.add(Constants.Feature.SUB);
     }
 
     @Override

@@ -1,15 +1,18 @@
 package database;
 
+import Obs.Observable;
+import Obs.Observer;
 import fileio.CredentialsInput;
 import fileio.MovieInput;
 import fileio.UserInput;
 import implementation.Movie;
 import implementation.User;
+import notification.Notification;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
 
-public final class Database {
+public final class Database extends Observable {
     private static Database instance = null;
 
     private Database() {
@@ -17,6 +20,7 @@ public final class Database {
 
     /**
      * Singleton pattern
+     *
      * @return instance
      */
     public static Database getDatabase() {
@@ -32,6 +36,7 @@ public final class Database {
 
     /**
      * Adds a user to the userDatabase
+     *
      * @param user
      */
     public void putUser(final User user) {
@@ -40,6 +45,7 @@ public final class Database {
 
     /**
      * Adds a movie to the movieDatabase
+     *
      * @param movie
      */
     public void putMovie(final Movie movie) {
@@ -48,6 +54,7 @@ public final class Database {
 
     /**
      * Returns a user from the database
+     *
      * @param credentialsInput
      * @return the user, if found, or null
      */
@@ -75,6 +82,7 @@ public final class Database {
 
     /**
      * Creates a user, then it adds it to the database
+     *
      * @param credentialsInput
      * @return the newly created user
      */
@@ -82,34 +90,49 @@ public final class Database {
         User user = new User.UserBuilder(credentialsInput)
                 .build();
         this.putUser(user);
+        this.addObserver(user);
 
         return user;
     }
 
     /**
-     *
      * @param movieInput
      */
-    public void addMovie(final MovieInput movieInput) {
-        Movie movie = new Movie.MovieBuilder(movieInput)
+    public boolean addMovie(final MovieInput movieInput) {
+        for (Movie movie : movieDatabase)
+            if (movie.getName().equals(movieInput.getName()))
+                return false;
+
+        Movie newMovie = new Movie.MovieBuilder(movieInput)
                 .build();
-        this.putMovie(movie);
+        this.putMovie(newMovie);
+
+        Notification notification = new Notification("ADD", newMovie);
+        notifyAllObs(notification);
+
+        return true;
     }
 
     /**
-     *
      * @param movieName
      */
-    public void removeMovie(final String movieName) {
+    public boolean removeMovie(final String movieName) {
         for (Movie movie : movieDatabase) {
             if (movie.getName().equals(movieName)) {
                 movieDatabase.remove(movie);
+                Notification notification = new Notification("DELETE", movie);
+                notifyAllObs(notification);
+                return true;
             }
         }
+
+        return false;
     }
+
     /**
      * Creates both the user and the movie databases, by building each user and movie individually,
      * then adding them in their respective database
+     *
      * @param userInputs
      * @param movieInputs
      */
@@ -119,6 +142,7 @@ public final class Database {
             User user = new User.UserBuilder(userInput.getCredentials())
                     .build();
             this.putUser(user);
+            this.addObserver(user);
         }
 
         for (MovieInput movieInput : movieInputs) {
