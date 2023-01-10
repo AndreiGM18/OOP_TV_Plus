@@ -87,4 +87,13 @@ public class Constants {
         public static final String BUY_PREMIUM = "buy premium account";
         public static final String SUB = "subscribe";
     }
+
+    public static final class Notification {
+        public static final String MOVIE_NAME = "movieName";
+        public static final String MESSAGE = "message";
+        public static final String REC = "Recommendation";
+        public static final String NO_REC = "No recommendation";
+        public static final String ADD = "ADD";
+        public static final String DEL = "DELETE";
+    }
 }

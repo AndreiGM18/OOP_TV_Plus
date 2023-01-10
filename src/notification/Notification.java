@@ -5,11 +5,10 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import constants.Constants;
 import implementation.Movie;
-import implementation.User;
 
 import java.util.ArrayList;
 
-public class Notification {
+public final class Notification {
     private Movie movie;
     private String message;
 
@@ -26,21 +25,33 @@ public class Notification {
         return message;
     }
 
-    public static ObjectNode createObjectNode(Notification notification) {
+    /**
+     * Static method that creates an ObjectNode based on the notification's fields
+     * @param notification the notification
+     * @return ObjectNode
+     */
+    public static ObjectNode createObjectNode(final Notification notification) {
         ObjectMapper objectMapper = new ObjectMapper();
         ObjectNode objectNode = objectMapper.createObjectNode();
 
-        if (notification.getMovie() == null)
-            objectNode.put("movieName", "No recommendation");
-        else
-            objectNode.put("movieName", notification.getMovie().getName());
+        /* If the movie is null, then no recommendation was found */
+        if (notification.getMovie() == null) {
+            objectNode.put(Constants.Notification.MOVIE_NAME, Constants.Notification.NO_REC);
+        } else {
+            objectNode.put(Constants.Notification.MOVIE_NAME, notification.getMovie().getName());
+        }
 
-        objectNode.put("message", notification.getMessage());
+        objectNode.put(Constants.Notification.MESSAGE, notification.getMessage());
 
         return objectNode;
     }
 
-    public static ArrayNode createArrayNode(ArrayList<Notification> notifications) {
+    /**
+     * Static method that returns an ArrayNode based on an ArrayList
+     * @param notifications the notifications list
+     * @return ArrayNode
+     */
+    public static ArrayNode createArrayNode(final ArrayList<Notification> notifications) {
         ObjectMapper objectMapper = new ObjectMapper();
         ArrayNode arrayNode = objectMapper.createArrayNode();
 

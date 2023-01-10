@@ -174,10 +174,6 @@ public final class Movie {
         return ratings;
     }
 
-    public void setRates(HashMap<User, Integer> ratings) {
-        this.ratings = ratings;
-    }
-
     /**
      * Static method that returns an ArrayNode based on an ArrayList
      * @param movies ArrayList

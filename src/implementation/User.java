@@ -1,6 +1,6 @@
 package implementation;
 
-import Obs.Observer;
+import obs.Observer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import constants.Constants;
@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 /**
- * Class implements the Builder design pattern
+ * Class implements the Builder and Observer design patterns
  */
 public final class User implements Observer {
     private Credentials credentials;
@@ -102,11 +102,20 @@ public final class User implements Observer {
         return notifications;
     }
 
+    /**
+     * Adds the notification to the user's notifications, if it is relevant to the user
+     * In case of the "ADD" notification, if a movie that has a genre that the user subscribed to,
+     * the notification is considered relevant.
+     * In case of the "DELETE" notification, if a movie was purchased by the user, the notification
+     * is considered relevant. The movie is removed from the user's lists and a refund is given.
+     * @param o the notification
+     */
     @Override
     public void update(final Object o) {
-        Notification notification = (Notification)o;
+        Notification notification = (Notification) o;
 
-        if (notification.getMessage().equals("ADD")) {
+        if (notification.getMessage().equals(Constants.Notification.ADD)) {
+            /* If the movie has a subscribed genre, the notification is relevant */
             for (String genre : notification.getMovie().getGenres()) {
                 if (this.subscribedGenres.contains(genre)) {
                     this.notifications.add(notification);
@@ -114,17 +123,21 @@ public final class User implements Observer {
                 }
             }
         } else {
+            /* If the movie was purchased, the notification is relevant */
             if (this.purchasedMovies.contains(notification.getMovie())) {
                 this.notifications.add(notification);
+
+                /* Removes the movie from all lists */
                 this.purchasedMovies.remove(notification.getMovie());
                 this.watchedMovies.remove(notification.getMovie());
                 this.likedMovies.remove(notification.getMovie());
                 this.ratedMovies.remove(notification.getMovie());
 
+                /* Refunds the user */
                 if (this.credentials.getAccountType().equals(Constants.User.Credentials.PREMIUM)) {
                     ++this.numFreePremiumMovies;
                 } else {
-                    ++this.tokensCount;
+                    this.tokensCount += 2;
                 }
             }
         }
@@ -156,7 +169,6 @@ public final class User implements Observer {
         }
 
         /**
-         *
          * @param numFreePremiumMoviesGiven the number of free movies left (can be decreased only
          *                                  if the account is premium)
          * @return the changed Builder instance
@@ -211,11 +223,19 @@ public final class User implements Observer {
             return this;
         }
 
+        /**
+         * @param genreNumLikesGiven the number of likes for each genre, in a HashMap
+         * @return the changed Builder instance
+         */
         public UserBuilder genreNumLikes(final HashMap<String, Integer> genreNumLikesGiven) {
             this.genreNumLikes = genreNumLikesGiven;
             return this;
         }
 
+        /**
+         * @param subscribedGenresGiven the genres that the user subscribed to
+         * @return the changed Builder instance
+         */
         public UserBuilder subscribedGenres(final ArrayList<String> subscribedGenresGiven) {
             this.subscribedGenres = subscribedGenresGiven;
             return this;
@@ -231,10 +251,6 @@ public final class User implements Observer {
 
     public HashMap<String, Integer> getGenreNumLikes() {
         return genreNumLikes;
-    }
-
-    public void setGenreNumLikes(HashMap<String, Integer> genreNumLikes) {
-        this.genreNumLikes = genreNumLikes;
     }
 
     /**

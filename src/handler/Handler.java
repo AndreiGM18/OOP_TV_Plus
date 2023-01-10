@@ -20,6 +20,7 @@ import java.util.LinkedList;
 import java.util.Map;
 
 public final class Handler {
+    /* Holds all previous pages (for the "back" action) */
     private static final LinkedList<String> PAGES_STACK = new LinkedList<>();
 
     private Handler() {
@@ -41,7 +42,7 @@ public final class Handler {
             node.set(Constants.Output.CURR_MOVIES,
                     Movie.createMoviesArrayNode(app.getCurrentMoviesList()));
             node.set(Constants.Output.CURR_USER, app.getCurrentUser().createObjectNode());
-        } else if (error.equals("recommend")) {
+        } else if (error.equals(Constants.Notification.REC)) {
             node.set(Constants.Output.ERR, null);
             node.set(Constants.Output.CURR_MOVIES, null);
             node.set(Constants.Output.CURR_USER, app.getCurrentUser().createObjectNode());
@@ -69,12 +70,11 @@ public final class Handler {
     }
 
     /**
-     *
-     * @param database
-     * @param app
-     * @param page
-     * @param action
-     * @param output
+     * Handles all actions that occur immediately after the page was changed
+     * @param database holds all users and movies
+     * @param app the current app session
+     * @param action the given action to perform
+     * @param output the ArrayNode that is to be written in the result file
      */
     private static void changedPageAction(final Database database, final App app,
                                           final String page, final ActionInput action,
@@ -85,6 +85,8 @@ public final class Handler {
         if (page.equals(Constants.Page.LOGOUT)) {
             app.clearApp();
             app.setCurrentPage(app.getPages().get(Constants.Page.UNAUTH));
+
+            /* The stack is cleared when logging out */
             PAGES_STACK.clear();
         }
 
@@ -118,7 +120,7 @@ public final class Handler {
     }
 
     /**
-     * Handles all actions that changes the current page
+     * Handles the "back" action
      * @param database holds all users and movies
      * @param app the current app session
      * @param action the given action to perform
@@ -126,7 +128,7 @@ public final class Handler {
      */
     private static void backCommandHandler(final Database database, final App app,
                                            final ActionInput action, final ArrayNode output) {
-        /* Verifies if the given page can be reached from the current page */
+        /* Verifies if there is any previous page or if it is "login" or "register" */
         if (PAGES_STACK.isEmpty()) {
             Handler.createOut(output, app, Constants.Output.ERROR);
         } else if (PAGES_STACK.getLast().equals(Constants.Page.LOGIN)
@@ -141,7 +143,7 @@ public final class Handler {
     }
 
     /**
-     * Handles all actions that changes the current page
+     * Handles "change page" action
      * @param database holds all users and movies
      * @param app the current app session
      * @param action the given action to perform
@@ -174,6 +176,7 @@ public final class Handler {
             Handler.createOut(output, app, Constants.Output.ERROR);
             app.setCurrentPage(app.getPages().get(Constants.Page.UNAUTH));
         } else {
+            /* The stack is cleared when logging in successfully */
             PAGES_STACK.clear();
             app.setCurrentUser(user);
             app.setCurrentPage(app.getPages().get(Constants.Page.AUTH));
@@ -194,7 +197,9 @@ public final class Handler {
             Handler.createOut(output, app, Constants.Output.ERROR);
             app.setCurrentPage(app.getPages().get(Constants.Page.UNAUTH));
         } else {
+            /* The stack is cleared when registering successfully */
             PAGES_STACK.clear();
+
             User newUser = database.addUser(action.getCredentials());
             app.setCurrentUser(newUser);
             app.setCurrentPage(app.getPages().get(Constants.Page.AUTH));
@@ -280,8 +285,9 @@ public final class Handler {
 
             for (String genre : movie.getGenres()) {
                 int genreLikes = 0;
-                if (app.getCurrentUser().getGenreNumLikes().containsKey(genre))
+                if (app.getCurrentUser().getGenreNumLikes().containsKey(genre)) {
                     genreLikes = app.getCurrentUser().getGenreNumLikes().get(genre);
+                }
 
                 app.getCurrentUser().getGenreNumLikes().put(genre, genreLikes + 1);
             }
@@ -298,28 +304,34 @@ public final class Handler {
          * Then, the movie's number of ratings increases
          * Finally, the movie's new rating is calculated
          * An output is created whether an error has occurred or not
+         * The rating that a user gives to a movie can be modified
          */
         if (app.getCurrentUser().getWatchedMovies().contains(movie)) {
             if (action.getRate() > Constants.Integers.MAX_RATING) {
                 Handler.createOut(output, app, Constants.Output.ERROR);
             } else {
+                /* Checks if the user already rated the movie */
                 if (!movie.getRates().containsKey(app.getCurrentUser())) {
                     movie.setNumRatings(movie.getNumRatings() + 1);
                 }
 
+                /* Changes the user's given rating */
                 movie.getRates().remove(app.getCurrentUser());
                 movie.getRates().put(app.getCurrentUser(), action.getRate());
 
+                /* Calculating the overall rating */
                 int sum = 0;
-                for (Map.Entry<User, Integer> entry : movie.getRates().entrySet())
-                   sum += entry.getValue();
+                for (Map.Entry<User, Integer> entry : movie.getRates().entrySet()) {
+                    sum += entry.getValue();
+                }
 
                 movie.setSumRatings(sum);
 
                 movie.setRating((double) movie.getSumRatings() / movie.getNumRatings());
 
-                if (!app.getCurrentUser().getRatedMovies().contains(movie))
+                if (!app.getCurrentUser().getRatedMovies().contains(movie)) {
                     app.getCurrentUser().getRatedMovies().add(movie);
+                }
 
                 Handler.createOut(output, app, null);
             }
@@ -328,22 +340,19 @@ public final class Handler {
         }
     }
 
-    /**
-     *
-     * @param app
-     * @param action
-     * @param output
-     */
-    public static void subscribe(final App app, final ActionInput action, final ArrayNode output) {
+    private static void subscribe(final App app, final ActionInput action, final ArrayNode output) {
+        /* Checks if the user has already subscribed to the genre */
         if (app.getCurrentUser().getSubscribedGenres().contains(action.getSubscribedGenre())) {
             Handler.createOut(output, app, Constants.Output.ERROR);
             return;
         }
 
+        /* Checks if the current page is the movie's details page and if the movie has the genre */
         if (app.getCurrentPage().getName().equals(Constants.Page.DETAILS)
             && !app.getCurrentMoviesList().isEmpty()) {
             if (app.getCurrentMoviesList().get(0).getGenres()
                     .contains(action.getSubscribedGenre())) {
+                /* Adds the genre to the subscribed genres */
                 app.getCurrentUser().getSubscribedGenres().add(action.getSubscribedGenre());
             } else {
                 Handler.createOut(output, app, Constants.Output.ERROR);
@@ -354,7 +363,7 @@ public final class Handler {
     }
 
     /**
-     * Handles all on-page actions
+     * Handles all "on page" actions
      * @param database holds all users and movies
      * @param app the current app session
      * @param action the given action to perform
@@ -399,24 +408,30 @@ public final class Handler {
         }
     }
 
-    public static void recommend(App app) {
+    private static void recommend(final App app) {
         ArrayList<String> mostLikedGenres = app.getMostLikedGenres();
         ArrayList<Movie> mostLikedMovies = app.getMostLikedMovies();
 
         Movie recommendedMovie = null;
+
+        /* Going through all the user's liked genres and all the visible movies */
         for (String genre : mostLikedGenres) {
             for (Movie movie: mostLikedMovies) {
+                /* If the movie is unwatched and has the genre, then it is recommended */
                 if (movie.getGenres().contains(genre)
                         && !app.getCurrentUser().getWatchedMovies().contains(movie)) {
                     recommendedMovie = movie;
                     break;
                 }
             }
-            if (recommendedMovie != null)
+            if (recommendedMovie != null) {
                 break;
+            }
         }
 
-        Notification recommendation = new Notification("Recommendation", recommendedMovie);
+        /* Adding the recommendation */
+        Notification recommendation = new Notification(Constants.Notification.REC,
+                recommendedMovie);
         app.getCurrentUser().getNotifications().add(recommendation);
     }
 
@@ -441,12 +456,15 @@ public final class Handler {
                 case Constants.Action.BACK -> backCommandHandler(database, app, action, output);
 
                 case Constants.Action.DATABASE -> {
-                    if (action.getFeature().equals("add")) {
-                        if (!database.addMovie(action.getAddedMovie()))
+                    if (action.getFeature().equals(Constants.Notification.ADD.toLowerCase())) {
+                        if (!database.addMovie(action.getAddedMovie())) {
                             Handler.createOut(output, app, Constants.Output.ERROR);
-                    } else if (action.getFeature().equals("delete")) {
-                        if (!database.removeMovie(action.getDeletedMovie()))
+                        }
+                    } else if (action.getFeature()
+                            .equals(Constants.Notification.DEL.toLowerCase())) {
+                        if (!database.removeMovie(action.getDeletedMovie())) {
                             Handler.createOut(output, app, Constants.Output.ERROR);
+                        }
                     }
                 }
 
@@ -455,12 +473,19 @@ public final class Handler {
             }
         }
 
-        if (app.getCurrentUser() != null)
+        /* Checks if the user is still logged in*/
+        if (app.getCurrentUser() != null) {
+            /* Checks if the user's account is premium */
             if (app.getCurrentUser().getCredentials().getAccountType()
                     .equals(Constants.User.Credentials.PREMIUM)) {
+                /* Sets the current movies list to all the user's available movies */
                 app.setCurrentMoviesList(new ArrayList<>(database.getMovieDatabase()));
+
+                /* Recommends a movie */
                 recommend(app);
-                Handler.createOut(output, app, "recommend");
+
+                Handler.createOut(output, app, Constants.Notification.REC);
             }
+        }
     }
 }

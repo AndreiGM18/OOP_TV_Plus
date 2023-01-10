@@ -205,48 +205,64 @@ public final class App {
         }
     }
 
+    /**
+     * Returns a list of the current user's most liked genres
+     * @return the list
+     */
     public ArrayList<String> getMostLikedGenres() {
         ArrayList<String> mostLikedGenres = new ArrayList<>();
 
+        /* Copies all genres that have at least a like from the user */
         for (Map.Entry<String, Integer> entry : currentUser.getGenreNumLikes().entrySet()) {
             mostLikedGenres.add(entry.getKey());
         }
 
+        /* Sorts them based on the number of likes and, in case of equality, lexicographically */
         mostLikedGenres.sort(new Comparator<String>() {
             @Override
-            public int compare(String o1, String o2) {
+            public int compare(final String o1, final String o2) {
                 if (currentUser.getGenreNumLikes().get(o1)
                         == currentUser.getGenreNumLikes().get(o2)) {
-                    if (o1.compareTo(o2) >= 0)
+                    if (o1.compareTo(o2) >= 0) {
                         return 1;
-                    else
+                    } else {
                         return -1;
+                    }
                 } else if (currentUser.getGenreNumLikes().get(o1)
-                        < currentUser.getGenreNumLikes().get(o2))
+                        < currentUser.getGenreNumLikes().get(o2)) {
                     return 1;
-                else
+                } else {
                     return -1;
+                }
             }
         });
 
         return mostLikedGenres;
     }
 
+    /**
+     * Returns a list of the most liked movies in the current movies list
+     * @return the list
+     */
     public ArrayList<Movie> getMostLikedMovies() {
+        /* Copies all movies */
         ArrayList<Movie> mostLikedMovies = new ArrayList<>(currentMoviesList);
 
+        /* Sorts them based on the number of likes and, in case of equality, lexicographically */
         mostLikedMovies.sort(new Comparator<Movie>() {
             @Override
-            public int compare(Movie o1, Movie o2) {
+            public int compare(final Movie o1, final Movie o2) {
                 if (o1.getNumLikes() == o2.getNumLikes()) {
-                    if (o1.getName().compareTo(o2.getName()) >= 0)
+                    if (o1.getName().compareTo(o2.getName()) >= 0) {
                         return 1;
-                    else
+                    } else {
                         return -1;
-                } else if (o1.getNumLikes() < o2.getNumLikes())
+                    }
+                } else if (o1.getNumLikes() < o2.getNumLikes()) {
                     return 1;
-                else
+                } else {
                     return -1;
+                }
             }
         });
 

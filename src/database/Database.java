@@ -1,7 +1,7 @@
 package database;
 
-import Obs.Observable;
-import Obs.Observer;
+import constants.Constants;
+import obs.Observable;
 import fileio.CredentialsInput;
 import fileio.MovieInput;
 import fileio.UserInput;
@@ -12,6 +12,9 @@ import notification.Notification;
 import java.util.ArrayList;
 import java.util.LinkedList;
 
+/**
+ * Class implements the Observable design pattern
+ */
 public final class Database extends Observable {
     private static Database instance = null;
 
@@ -20,7 +23,6 @@ public final class Database extends Observable {
 
     /**
      * Singleton pattern
-     *
      * @return instance
      */
     public static Database getDatabase() {
@@ -36,7 +38,6 @@ public final class Database extends Observable {
 
     /**
      * Adds a user to the userDatabase
-     *
      * @param user
      */
     public void putUser(final User user) {
@@ -45,7 +46,6 @@ public final class Database extends Observable {
 
     /**
      * Adds a movie to the movieDatabase
-     *
      * @param movie
      */
     public void putMovie(final Movie movie) {
@@ -54,8 +54,7 @@ public final class Database extends Observable {
 
     /**
      * Returns a user from the database
-     *
-     * @param credentialsInput
+     * @param credentialsInput credentials
      * @return the user, if found, or null
      */
     public User getUser(final CredentialsInput credentialsInput) {
@@ -82,31 +81,40 @@ public final class Database extends Observable {
 
     /**
      * Creates a user, then it adds it to the database
-     *
-     * @param credentialsInput
+     * A user is also considered an observer
+     * @param credentialsInput credentials
      * @return the newly created user
      */
     public User addUser(final CredentialsInput credentialsInput) {
         User user = new User.UserBuilder(credentialsInput)
                 .build();
         this.putUser(user);
+
+        /* Adds the user as an observer */
         this.addObserver(user);
 
         return user;
     }
 
     /**
-     * @param movieInput
+     * Adds a movie in the database, if the movie is not already present
+     * @param movieInput the movie's input data
+     * @return whether the movie was already present or not
      */
     public boolean addMovie(final MovieInput movieInput) {
-        for (Movie movie : movieDatabase)
-            if (movie.getName().equals(movieInput.getName()))
+        /* Going through all movies */
+        for (Movie movie : movieDatabase) {
+            /* The movie was found, so it already exists */
+            if (movie.getName().equals(movieInput.getName())) {
                 return false;
+            }
+        }
 
         Movie newMovie = new Movie.MovieBuilder(movieInput)
                 .build();
         this.putMovie(newMovie);
 
+        /* Notifying all observers */
         Notification notification = new Notification("ADD", newMovie);
         notifyAllObs(notification);
 
@@ -114,27 +122,34 @@ public final class Database extends Observable {
     }
 
     /**
-     * @param movieName
+     * Removes a movie from the database, if the movie is already present
+     * @param movieName movieInput the movie's input data
+     * @return whether the movie was present in the database or not
      */
     public boolean removeMovie(final String movieName) {
+        /* Going through all movies */
         for (Movie movie : movieDatabase) {
             if (movie.getName().equals(movieName)) {
                 movieDatabase.remove(movie);
-                Notification notification = new Notification("DELETE", movie);
+
+                /* Notifying all observers */
+                Notification notification = new Notification(Constants.Notification.DEL, movie);
                 notifyAllObs(notification);
+
                 return true;
             }
         }
 
+        /* The movie was not found */
         return false;
     }
 
     /**
      * Creates both the user and the movie databases, by building each user and movie individually,
      * then adding them in their respective database
-     *
-     * @param userInputs
-     * @param movieInputs
+     * All users are considered observers
+     * @param userInputs users' input data
+     * @param movieInputs movies' input data
      */
     public void createDatabase(final ArrayList<UserInput> userInputs,
                                final ArrayList<MovieInput> movieInputs) {
@@ -142,6 +157,8 @@ public final class Database extends Observable {
             User user = new User.UserBuilder(userInput.getCredentials())
                     .build();
             this.putUser(user);
+
+            /* Adds the user as an observer */
             this.addObserver(user);
         }
 
